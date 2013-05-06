@@ -1,4 +1,4 @@
-/* linux/arch/arm/mach-msm/board-spade.h
+/* linux/arch/arm/mach-msm/board-shooter.h
  *
  * Copyright (C) 2010-2011 HTC Corporation.
  *
@@ -73,22 +73,18 @@
 #define MSM_PMEM_SF_SIZE 0x4000000 /* 64 Mbytes */
 #define MSM_OVERLAY_BLT_SIZE   roundup(960 * ALIGN(540, 32) * 3 * 2, 4096)
 
+#define MSM_PMEM_KERNEL_EBI1_BASE	(MSM_ION_AUDIO_BASE + MSM_ION_AUDIO_SIZE)
 #define MSM_PMEM_ADSP_SIZE	0x239C000
 #define MSM_PMEM_ADSP2_SIZE	0x664000 /* ((1408 * 792 * 1.5) Align 2K) * 2 * 2 */
 #define MSM_PMEM_AUDIO_SIZE	0x239000
 
 #define MSM_PMEM_SF_BASE		(0x70000000 - MSM_PMEM_SF_SIZE)
-#define MSM_OVERLAY_BLT_BASE	(MSM_PMEM_SF_BASE - MSM_OVERLAY_BLT_SIZE)
+#define MSM_PMEM_ADSP_BASE		(0x40400000)
+#define MSM_FB_BASE             (0x6B000000)
 #define MSM_PMEM_AUDIO_BASE	    (MSM_OVERLAY_BLT_BASE - MSM_PMEM_AUDIO_SIZE)
 
-
-#define MSM_PMEM_ADSP_BASE	(0x40400000)
+#define MSM_OVERLAY_BLT_BASE	(MSM_PMEM_SF_BASE - MSM_OVERLAY_BLT_SIZE)
 #define MSM_PMEM_ADSP2_BASE	(MSM_PMEM_ADSP_BASE + MSM_PMEM_ADSP_SIZE)
-
-#define MSM_FB_BASE             (0x6B000000)  /*MSM_PMEM_AUDIO_BASE is 0x6BACA000*/
-                                              /*to avoid alignment,  use 0x6BA00000 - 0xA00000*/
-
-#define MSM_PMEM_KERNEL_EBI1_BASE	(MSM_PMEM_AUDIO_BASE + MSM_PMEM_AUDIO_SIZE)
 
 #define MSM_SMI_BASE          0x38000000
 #define MSM_SMI_SIZE          0x4000000
@@ -107,6 +103,20 @@
 #define USER_SMI_SIZE         (MSM_SMI_SIZE - KERNEL_SMI_SIZE)
 #define MSM_PMEM_SMIPOOL_BASE USER_SMI_BASE
 #define MSM_PMEM_SMIPOOL_SIZE USER_SMI_SIZE
+
+#ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+#define MSM_ION_SF_SIZE       MSM_PMEM_SF_SIZE
+#define MSM_ION_CAMERA_SIZE   0x2000000
+#define MSM_ION_ROTATOR_SIZE  MSM_PMEM_ADSP2_SIZE
+#define MSM_ION_MM_FW_SIZE    0x200000  
+#define MSM_ION_MM_SIZE       0x3D00000 
+#define MSM_ION_MFC_SIZE      0x100000  
+#define MSM_ION_WB_SIZE       0x2FD000  
+#define MSM_ION_HEAP_NUM      9
+
+#define MSM_ION_CAMERA_BASE   (0x40E00000)	
+#define MSM_ION_WB_BASE       (0x46400000)
+#define MSM_ION_AUDIO_BASE    (0x7FB00000)
 
 #define PHY_BASE_ADDR1  0x48000000
 #define SIZE_ADDR1      0x23000000
