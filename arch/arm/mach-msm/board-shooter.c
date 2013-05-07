@@ -2271,7 +2271,7 @@ void *setup_smi_region(void)
 	return (void *)msm_bus_scale_register_client(&smi_client_pdata);
 }
 
-#ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
+#ifdef CONFIG_ANDROID_PMEM
 static struct android_pmem_platform_data android_pmem_smipool_pdata = {
 	.name = "pmem_smipool",
 	.allocator_type = PMEM_ALLOCATORTYPE_BITMAP,
@@ -3727,9 +3727,9 @@ static struct platform_device *shooter_devices[] __initdata = {
 #ifdef CONFIG_ANDROID_PMEM
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	&android_pmem_device,
-	&android_pmem_smipool_device,
 #endif
 	&android_pmem_adsp_device,
+	&android_pmem_smipool_device,
 	&android_pmem_audio_device,
 #endif
 #ifdef CONFIG_MSM_ROTATOR
@@ -3998,9 +3998,9 @@ static void __init size_pmem_devices(void)
 		size_pmem_device(&android_pmem_adsp_pdata, MSM_PMEM_ADSP_BASE, pmem_adsp_size);
 		size_pmem_device(&android_pmem_pdata, MSM_PMEM_SF_BASE, MSM_PMEM_SF_SIZE);
 	}
-	size_pmem_device(&android_pmem_smipool_pdata, MSM_PMEM_SMIPOOL_BASE, MSM_PMEM_SMIPOOL_SIZE);
 #endif
 	size_pmem_device(&android_pmem_adsp_pdata, MSM_PMEM_ADSP_BASE+0x10000000, pmem_adsp_size);
+	size_pmem_device(&android_pmem_smipool_pdata, MSM_PMEM_SMIPOOL_BASE, MSM_PMEM_SMIPOOL_SIZE);
 	size_pmem_device(&android_pmem_audio_pdata, MSM_PMEM_AUDIO_BASE, MSM_PMEM_AUDIO_SIZE);
 #endif
 }
@@ -4019,10 +4019,10 @@ static void __init reserve_pmem_memory(void)
 {
 #ifdef CONFIG_ANDROID_PMEM
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
-	reserve_memory_for(&android_pmem_smipool_pdata);
 	reserve_memory_for(&android_pmem_pdata);
 #endif
 	reserve_memory_for(&android_pmem_adsp_pdata);
+	reserve_memory_for(&android_pmem_smipool_pdata);
 	reserve_memory_for(&android_pmem_audio_pdata);
 #endif
 }
