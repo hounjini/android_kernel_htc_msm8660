@@ -459,6 +459,9 @@ struct msm_pmem_region {
 	unsigned long len;
 	struct file *file;
 	struct msm_pmem_info info;
+#ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+	struct ion_handle *handle;
+#endif
 };
 
 struct axidata {
