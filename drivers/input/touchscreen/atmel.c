@@ -147,8 +147,8 @@ static void multi_input_report(struct atmel_ts_data *ts);
 #define BACK_BUTTON		645
 #define SRCH_BUTTON		915
 
-int s2w_switch = 0;
-int s2w_temp = 0;
+int s2w_switch = 1;
+int s2w_temp = 1;
 
 bool scr_suspended = false, exec_count = true, s2w_switch_changed = false;
 bool scr_on_touch = false, led_exec_count = false, barrier[2] = {false, false};
