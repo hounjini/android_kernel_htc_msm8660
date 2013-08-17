@@ -3754,7 +3754,10 @@ static struct platform_device *rider_devices[] __initdata = {
 #endif
 #ifdef CONFIG_SERIAL_MSM_HS
 	&msm_device_uart_dm1,
+
 	&rider_bcm_bt_lpm_device,
+
+
 #endif
 #ifdef CONFIG_MSM_SSBI
 	&msm_device_ssbi_pmic1,
