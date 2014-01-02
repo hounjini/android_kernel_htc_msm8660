@@ -1,0 +1,3 @@
+Please copy VIDC driver(driver/video/msm*, and change corresponding Kconfig, Makefile, etc) from Rider official kernel source.
+
+Also, please use 1080p firmware from official rider firmware. (ICS)
