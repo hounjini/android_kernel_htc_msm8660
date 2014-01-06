@@ -1,0 +1,211 @@
+From 7056430624a0b456ec9d1cc2891022d6628cff64 Mon Sep 17 00:00:00 2001
+From: hounjini <hounjini@gmail.com>
+Date: Sat, 17 Aug 2013 11:29:00 +0900
+Subject: [PATCH] Fix bluetooth
+
+---
+ arch/arm/configs/rider_cm10_defconfig          | 18 ++++----
+ arch/arm/mach-msm/board-rider.c                | 57 ++++++++++++++++++++++++--
+ arch/arm/mach-msm/include/mach/msm_serial_hs.h | 22 +++++-----
+ 3 files changed, 73 insertions(+), 24 deletions(-)
+
+diff --git a/arch/arm/configs/rider_cm10_defconfig b/arch/arm/configs/rider_cm10_defconfig
+index 4e16df6..af2de07 100644
+--- a/arch/arm/configs/rider_cm10_defconfig
++++ b/arch/arm/configs/rider_cm10_defconfig
+@@ -1066,12 +1066,11 @@ CONFIG_RPS=y
+ # CONFIG_HAMRADIO is not set
+ # CONFIG_CAN is not set
+ # CONFIG_IRDA is not set
+-CONFIG_SERIAL_BCM_BT_LPM=y
+ CONFIG_BT=y
+ CONFIG_BT_L2CAP=y
+ CONFIG_BT_SCO=y
+ CONFIG_BT_RFCOMM=y
+-CONFIG_BT_RFCOMM_TTY=y
++# CONFIG_BT_RFCOMM_TTY is not set
+ CONFIG_BT_BNEP=y
+ # CONFIG_BT_BNEP_MC_FILTER is not set
+ # CONFIG_BT_BNEP_PROTO_FILTER is not set
+@@ -1081,13 +1080,13 @@ CONFIG_BT_HIDP=y
+ # Bluetooth device drivers
+ #
+ # CONFIG_BT_HCISMD is not set
+-CONFIG_BT_HCIBTUSB=y
+-CONFIG_BT_HCIBTSDIO=y
++# CONFIG_BT_HCIBTUSB is not set
++# CONFIG_BT_HCIBTSDIO is not set
+ CONFIG_BT_HCIUART=y
+ CONFIG_BT_HCIUART_H4=y
+-CONFIG_BT_HCIUART_BCSP=y
++# CONFIG_BT_HCIUART_BCSP is not set
+ # CONFIG_BT_HCIUART_ATH3K is not set
+-CONFIG_BT_HCIUART_LL=y
++# CONFIG_BT_HCIUART_LL is not set
+ # CONFIG_BT_HCIUART_IBS is not set
+ # CONFIG_BT_HCIBCM203X is not set
+ # CONFIG_BT_HCIBPA10X is not set
+@@ -1095,8 +1094,8 @@ CONFIG_BT_HCIUART_LL=y
+ # CONFIG_BT_HCIBFUSB is not set
+ # CONFIG_BT_HCIVHCI is not set
+ # CONFIG_BT_MRVL is not set
+-CONFIG_MSM_BT_POWER=y
+-# CONFIG_BT_ATH3K is not set
++# CONFIG_MSM_BT_POWER is not set
++CONFIG_BT_HID_BRCM=y
+ # CONFIG_AF_RXRPC is not set
+ CONFIG_FIB_RULES=y
+ CONFIG_WIRELESS=y
+@@ -1516,13 +1515,12 @@ CONFIG_LEGACY_PTY_COUNT=256
+ # CONFIG_SERIAL_MAX3107 is not set
+ CONFIG_SERIAL_CORE=y
+ CONFIG_SERIAL_CORE_CONSOLE=y
+-# CONFIG_IMC_UART2DM_HANDSHAKE is not set
+ # CONFIG_SERIAL_MSM is not set
+ CONFIG_SERIAL_MSM_HS=y
+ # CONFIG_SERIAL_MSM_HS_IMC is not set
+ CONFIG_SERIAL_MSM_HSL=y
+ CONFIG_SERIAL_MSM_HSL_CONSOLE=y
+-# CONFIG_SERIAL_BCM_BT_LPM is not set
++CONFIG_SERIAL_BCM_BT_LPM=y
+ # CONFIG_SERIAL_TIMBERDALE is not set
+ # CONFIG_SERIAL_ALTERA_JTAGUART is not set
+ # CONFIG_SERIAL_ALTERA_UART is not set
+diff --git a/arch/arm/mach-msm/board-rider.c b/arch/arm/mach-msm/board-rider.c
+index 8e93de4..4488284 100644
+--- a/arch/arm/mach-msm/board-rider.c
++++ b/arch/arm/mach-msm/board-rider.c
+@@ -68,6 +68,7 @@
+ #include <mach/msm_spi.h>
+ #include <mach/msm_serial_hs.h>
+ #include <mach/msm_serial_hs_lite.h>
++#include <mach/bcm_bt_lpm.h>
+ #include <mach/msm_iomap.h>
+ #include <mach/msm_memtypes.h>
+ #include <asm/mach/mmc.h>
+@@ -2525,16 +2526,66 @@ static ssize_t rider_virtual_keys_show(struct kobject *kobj,
+ };
+ 
+ #ifdef CONFIG_SERIAL_MSM_HS
++static int configure_uart_gpios(int on)
++{
++	int ret = 0, i;
++	int uart_gpios[] = {
++		RIDER_GPIO_BT_UART1_TX,
++		RIDER_GPIO_BT_UART1_RX,
++		RIDER_GPIO_BT_UART1_CTS,
++		RIDER_GPIO_BT_UART1_RTS,
++	};
++	for (i = 0; i < ARRAY_SIZE(uart_gpios); i++) {
++		if (on) {
++			ret = msm_gpiomux_get(uart_gpios[i]);
++			if (unlikely(ret))
++				break;
++		} else {
++			ret = msm_gpiomux_put(uart_gpios[i]);
++			if (unlikely(ret))
++				return ret;
++		}
++	}
++	if (ret)
++		for (; i >= 0; i--)
++			msm_gpiomux_put(uart_gpios[i]);
++	return ret;
++}
++
++static struct msm_serial_hs_platform_data msm_uart_dm1_pdata = {
++	.wakeup_irq = -1,
++	.inject_rx_on_wakeup = 0,
++	.gpio_config = configure_uart_gpios,
++	.exit_lpm_cb = bcm_bt_lpm_exit_lpm_locked,
++};
++
++static struct bcm_bt_lpm_platform_data bcm_bt_lpm_pdata = {
++	.gpio_wake = RIDER_GPIO_BT_CHIP_WAKE,
++	.gpio_host_wake = RIDER_GPIO_BT_HOST_WAKE,
++	.request_clock_off_locked = msm_hs_request_clock_off_locked,
++	.request_clock_on_locked = msm_hs_request_clock_on_locked,
++};
++
++struct platform_device pyramid_bcm_bt_lpm_device = {
++	.name = "bcm_bt_lpm",
++	.id = 0,
++	.dev = {
++		.platform_data = &bcm_bt_lpm_pdata,
++	},
++};
++#endif
++/*
++
++
+ static struct msm_serial_hs_platform_data msm_uart_dm1_pdata = {
+ 	.inject_rx_on_wakeup = 0,
+ 	.cpu_lock_supported = 1,
+ 
+-	/* for bcm BT */
+ 	.bt_wakeup_pin_supported = 1,
+ 	.bt_wakeup_pin = RIDER_GPIO_BT_CHIP_WAKE,
+ 	.host_wakeup_pin = RIDER_GPIO_BT_HOST_WAKE,
+ };
+-#endif
++*/
+ 
+ #ifdef CONFIG_BT
+ static struct platform_device rider_rfkill = {
+@@ -5262,8 +5313,6 @@ static void __init msm8x60_init_buses(void)
+ #endif
+ 
+ #ifdef CONFIG_SERIAL_MSM_HS
+-	msm_uart_dm1_pdata.rx_wakeup_irq = gpio_to_irq(RIDER_GPIO_BT_HOST_WAKE);
+-	msm_device_uart_dm1.name = "msm_serial_hs_brcm";
+ 	msm_device_uart_dm1.dev.platform_data = &msm_uart_dm1_pdata;
+ #endif
+ 
+diff --git a/arch/arm/mach-msm/include/mach/msm_serial_hs.h b/arch/arm/mach-msm/include/mach/msm_serial_hs.h
+index 0c4603e..9f2a8d5 100644
+--- a/arch/arm/mach-msm/include/mach/msm_serial_hs.h
++++ b/arch/arm/mach-msm/include/mach/msm_serial_hs.h
+@@ -25,16 +25,11 @@ struct msm_serial_hs_platform_data {
+ 	unsigned char inject_rx_on_wakeup;
+ 	char rx_to_inject;
+ 	int (*gpio_config)(int);
+-
+-	unsigned char cpu_lock_supported;
+-
+-	/* for bcm BT */
+-	int rx_wakeup_irq;  /* wakeup irq */
+-	unsigned char bt_wakeup_pin_supported;
+-	unsigned char bt_wakeup_pin;	/* Device to Chip */
+-	unsigned char host_wakeup_pin;	/* Chip to Device */
++#ifdef CONFIG_SERIAL_BCM_BT_LPM
++	void (*exit_lpm_cb)(struct uart_port *);
++#endif
+ };
+-#if 1		//Add by evan.xu@2012-02-02
++#ifdef CONFIG_MACH_RUBY
+ /* API for TI_ST */
+ extern void ti_msm_hs_request_clock_off(struct uart_port *uport);
+ extern void ti_msm_hs_request_clock_on(struct uart_port *uport);
+@@ -42,10 +37,17 @@ struct msm_serial_hs_platform_data {
+ extern void ti_dc_msm_hs_request_clock_on(struct uart_port *uport);
+ #endif
+ 
+-extern void imc_msm_hs_request_clock_on(struct uart_port *uport);
+ unsigned int msm_hs_tx_empty(struct uart_port *uport);
+ void msm_hs_request_clock_off(struct uart_port *uport);
+ void msm_hs_request_clock_on(struct uart_port *uport);
+ void msm_hs_set_mctrl(struct uart_port *uport,
+ 				    unsigned int mctrl);
++
++#ifdef CONFIG_SERIAL_BCM_BT_LPM
++/* uport->lock must be held when calling _locked() */
++extern void msm_hs_request_clock_off_locked(struct uart_port *uport);
++extern void msm_hs_request_clock_on_locked(struct uart_port *uport);
+ #endif
++
++#endif
++
+-- 
+1.8.5.1
+
+

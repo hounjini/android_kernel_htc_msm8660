@@ -1,0 +1,42 @@
+From 40664f4f9aa73b1ec7cc389583947364c9618645 Mon Sep 17 00:00:00 2001
+From: hounjini <hounjini@gmail.com>
+Date: Sat, 17 Aug 2013 11:43:36 +0900
+Subject: [PATCH] Fix bluetooth
+
+---
+ arch/arm/mach-msm/board-rider.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-msm/board-rider.c b/arch/arm/mach-msm/board-rider.c
+index 4488284..db8fce8 100644
+--- a/arch/arm/mach-msm/board-rider.c
++++ b/arch/arm/mach-msm/board-rider.c
+@@ -2525,6 +2525,7 @@ static ssize_t rider_virtual_keys_show(struct kobject *kobj,
+ 	.attrs = rider_properties_attrs,
+ };
+ 
++#define TS_PEN_IRQ_GPIO 61
+ #ifdef CONFIG_SERIAL_MSM_HS
+ static int configure_uart_gpios(int on)
+ {
+@@ -2566,7 +2567,7 @@ static int configure_uart_gpios(int on)
+ 	.request_clock_on_locked = msm_hs_request_clock_on_locked,
+ };
+ 
+-struct platform_device pyramid_bcm_bt_lpm_device = {
++struct platform_device rider_bcm_bt_lpm_device = {
+ 	.name = "bcm_bt_lpm",
+ 	.id = 0,
+ 	.dev = {
+@@ -3753,6 +3754,7 @@ static int mhl_sii9234_power(int on)
+ #endif
+ #ifdef CONFIG_SERIAL_MSM_HS
+ 	&msm_device_uart_dm1,
++	&rider_bcm_bt_lpm_device,
+ #endif
+ #ifdef CONFIG_MSM_SSBI
+ 	&msm_device_ssbi_pmic1,
+-- 
+1.8.5.1
+
+
