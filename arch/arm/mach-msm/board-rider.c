@@ -48,6 +48,11 @@
 #ifdef CONFIG_ANDROID_PMEM
 #include <linux/android_pmem.h>
 #endif
+#ifdef CONFIG_ION_MSM
+#include <linux/ion.h>
+#include <mach/ion.h>
+#endif
+
 
 #if defined(CONFIG_SMB137B_CHARGER) || defined(CONFIG_SMB137B_CHARGER_MODULE)
 #include <linux/i2c/smb137b.h>
@@ -148,6 +153,11 @@ int set_two_phase_freq_badass(int cpufreq);
 #ifdef CONFIG_CPU_FREQ_GOV_BADASS_3_PHASE
 int set_three_phase_freq_badass(int cpufreq);
 #endif
+
+#ifdef CONFIG_ION_MSM
+static struct platform_device ion_dev;
+#endif
+
 
 /* Macros assume PMIC GPIOs start at 0 */
 #define PM8058_GPIO_BASE			NR_MSM_GPIOS
@@ -319,7 +329,7 @@ static void (*sdc5_status_notify_cb)(int card_present, void *dev_id);
 static void *sdc5_status_notify_cb_devid;
 #endif
 
-static unsigned int engineerid, mem_size_mb;
+static unsigned int engineerid;
 
 unsigned int rider_get_engineerid(void)
 {
@@ -480,7 +490,7 @@ static struct regulator_init_data saw_s0_init_data = {
 		.constraints = {
 			.name = "8901_s0",
 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
-			.min_uV = 750000,
+			.min_uV = 700000,
 			.max_uV = 1350000,
 		},
 		.consumer_supplies = vreg_consumers_8901_S0,
@@ -491,7 +501,7 @@ static struct regulator_init_data saw_s1_init_data = {
 		.constraints = {
 			.name = "8901_s1",
 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
-			.min_uV = 750000,
+			.min_uV = 700000,
 			.max_uV = 1350000,
 		},
 		.consumer_supplies = vreg_consumers_8901_S1,
@@ -547,6 +557,9 @@ static struct platform_device smsc911x_device = {
 		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE) || \
 		defined(CONFIG_CRYPTO_DEV_QCEDEV) || \
 		defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
+
+#define QCE_SIZE		0x10000
+#define QCE_0_BASE		0x18500000
 
 #define QCE_HW_KEY_SUPPORT	0
 #define QCE_SHA_HMAC_SUPPORT	0
@@ -872,7 +885,8 @@ static struct msm_cpuidle_state msm_cstates[] __initdata = {
 		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
 };
 
-static struct msm_rpmrs_level msm_rpmrs_levels[] __initdata = {
+//static struct msm_rpmrs_level msm_rpmrs_levels[] __initdata = {
+static struct msm_rpmrs_level msm_rpmrs_levels[] = {
 	{
 		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT,
 		MSM_RPMRS_LIMITS(ON, ACTIVE, MAX, ACTIVE),
@@ -2149,15 +2163,6 @@ static int __init fb_size_setup(char *p)
 early_param("fb_size", fb_size_setup);
 
 #ifdef CONFIG_ANDROID_PMEM
-static unsigned pmem_sf_size = MSM_PMEM_SF_SIZE;
-
-static int __init pmem_sf_size_setup(char *p)
-{
-	pmem_sf_size = memparse(p, NULL);
-	return 0;
-}
-early_param("pmem_sf_size", pmem_sf_size_setup);
-
 static unsigned pmem_adsp_size = MSM_PMEM_ADSP_SIZE;
 
 static int __init pmem_adsp_size_setup(char *p)
@@ -2187,41 +2192,34 @@ static struct resource msm_fb_resources[] = {
 	},
 };
 
+static struct platform_device shooter_3Dpanel_device = {
+	.name = "panel_3d",
+	.id = -1,
+};
+
 #ifdef CONFIG_ANDROID_PMEM
-static struct android_pmem_platform_data android_pmem_pdata = {
-	.name = "pmem",
-	.allocator_type = PMEM_ALLOCATORTYPE_ALLORNOTHING,
-	.cached = 1,
-};
-
-static struct platform_device android_pmem_device = {
-	.name = "android_pmem",
-	.id = 0,
-	.dev = {.platform_data = &android_pmem_pdata},
-};
-
 static struct android_pmem_platform_data android_pmem_adsp_pdata = {
-	.name = "pmem_adsp",
-	.allocator_type = PMEM_ALLOCATORTYPE_BITMAP,
-	.cached = 1,
+	.name		= "pmem_adsp",
+	.allocator_type	= PMEM_ALLOCATORTYPE_BITMAP,
+	.cached		= 1,
 };
 
 static struct platform_device android_pmem_adsp_device = {
-	.name = "android_pmem",
-	.id = 2,
-	.dev = { .platform_data = &android_pmem_adsp_pdata },
+	.name	= "android_pmem",
+	.id	= 2,
+	.dev	= { .platform_data = &android_pmem_adsp_pdata },
 };
 
 static struct android_pmem_platform_data android_pmem_audio_pdata = {
-	.name = "pmem_audio",
-	.allocator_type = PMEM_ALLOCATORTYPE_BITMAP,
-	.cached = 0,
+	.name		= "pmem_audio",
+	.allocator_type	= PMEM_ALLOCATORTYPE_BITMAP,
+	.cached		= 0,
 };
 
 static struct platform_device android_pmem_audio_device = {
-	.name = "android_pmem",
-	.id = 4,
-	.dev = { .platform_data = &android_pmem_audio_pdata },
+	.name	= "android_pmem",
+	.id	= 4,
+	.dev	= { .platform_data = &android_pmem_audio_pdata },
 };
 
 #define PMEM_BUS_WIDTH(_bw) \
@@ -2234,15 +2232,16 @@ static struct platform_device android_pmem_audio_device = {
 		}, \
 	.num_paths = 1, \
 	}
+
 static struct msm_bus_paths pmem_smi_table[] = {
 	[0] = PMEM_BUS_WIDTH(0), /* Off */
 	[1] = PMEM_BUS_WIDTH(1), /* On */
 };
 
 static struct msm_bus_scale_pdata smi_client_pdata = {
-	.usecase = pmem_smi_table,
-	.num_usecases = ARRAY_SIZE(pmem_smi_table),
-	.name = "pmem_smi",
+	.usecase	= pmem_smi_table,
+	.num_usecases	= ARRAY_SIZE(pmem_smi_table),
+	.name		= "pmem_smi",
 };
 
 void pmem_request_smi_region(void *data)
@@ -2260,6 +2259,27 @@ void pmem_release_smi_region(void *data)
 }
 
 void *pmem_setup_smi_region(void)
+{
+	return (void *)msm_bus_scale_register_client(&smi_client_pdata);
+}
+
+int request_smi_region(void *data)
+{
+	int bus_id = (int) data;
+
+	msm_bus_scale_client_update_request(bus_id, 1);
+	return 0;
+}
+
+int release_smi_region(void *data)
+{
+	int bus_id = (int) data;
+
+	msm_bus_scale_client_update_request(bus_id, 0);
+	return 0;
+}
+
+void *setup_smi_region(void)
 {
 	return (void *)msm_bus_scale_register_client(&smi_client_pdata);
 }
@@ -2291,17 +2311,17 @@ static int hdmi_core_power(int on, int show);
 static int hdmi_cec_power(int on);
 
 static struct msm_hdmi_platform_data hdmi_msm_data = {
-	.irq = HDMI_IRQ,
-	.enable_5v = hdmi_enable_5v,
-	.core_power = hdmi_core_power,
-	.cec_power = hdmi_cec_power,
+	.irq		= HDMI_IRQ,
+	.enable_5v	= hdmi_enable_5v,
+	.core_power	= hdmi_core_power,
+	.cec_power	= hdmi_cec_power,
 };
 
 static struct platform_device hdmi_msm_device = {
-	.name = "hdmi_msm",
-	.id = 0,
-	.num_resources = ARRAY_SIZE(hdmi_msm_resources),
-	.resource = hdmi_msm_resources,
+	.name		= "hdmi_msm",
+	.id		= 0,
+	.num_resources	= ARRAY_SIZE(hdmi_msm_resources),
+	.resource	= hdmi_msm_resources,
 	.dev.platform_data = &hdmi_msm_data,
 };
 
@@ -2311,37 +2331,111 @@ static struct platform_device *hdmi_devices[] __initdata = {
 #endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
 
 static struct android_pmem_platform_data android_pmem_smipool_pdata = {
-	.name = "pmem_smipool",
-	.allocator_type = PMEM_ALLOCATORTYPE_BITMAP,
-	.cached = 1,
-	.memory_type = MEMTYPE_SMI,
-	.request_region = pmem_request_smi_region,
-	.release_region = pmem_release_smi_region,
-	.setup_region = pmem_setup_smi_region,
-	.map_on_demand = 1,
+	.name		= "pmem_smipool",
+	.allocator_type	= PMEM_ALLOCATORTYPE_BITMAP,
+	.cached		= 1,
+	.memory_type	= MEMTYPE_SMI,
+	.request_region	= pmem_request_smi_region,
+	.release_region	= pmem_release_smi_region,
+	.setup_region	= pmem_setup_smi_region,
+	.map_on_demand	= 1,
 };
+
 static struct platform_device android_pmem_smipool_device = {
-	.name = "android_pmem",
-	.id = 7,
-	.dev = { .platform_data = &android_pmem_smipool_pdata },
+	.name	= "android_pmem",
+	.id	= 7,
+	.dev	= { .platform_data = &android_pmem_smipool_pdata },
 };
 #endif
 
+#ifdef CONFIG_ION_MSM
+#ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+static struct ion_co_heap_pdata co_ion_pdata = {
+  .adjacent_mem_id = INVALID_HEAP_ID,
+  .align = PAGE_SIZE,
+};
+
+static struct ion_cp_heap_pdata cp_mm_ion_pdata = {
+	.permission_type = IPT_TYPE_MM_CARVEOUT,
+	.align = PAGE_SIZE,
+	.request_region = request_smi_region,
+	.release_region = release_smi_region,
+	.setup_region = setup_smi_region,
+};
+
+static struct ion_cp_heap_pdata cp_wb_ion_pdata = {
+	.permission_type = IPT_TYPE_MDP_WRITEBACK,
+	.align = PAGE_SIZE,
+};
+#endif
+#endif
+
+/*
+ * These heaps are listed in the order they will be allocated.
+ * Don't swap the order unless you know what you are doing!
+ */
+static struct ion_platform_data ion_pdata = {
+.nr = MSM_ION_HEAP_NUM,
+	.heaps = {
+		{
+			.id	= ION_SYSTEM_HEAP_ID,
+			.type	= ION_HEAP_TYPE_SYSTEM,
+			.name	= ION_VMALLOC_HEAP_NAME,
+		},
+		{
+			.id	= ION_CP_MM_HEAP_ID,
+			.type	= ION_HEAP_TYPE_CP,
+			.name	= ION_MM_HEAP_NAME,
+			.base	= MSM_ION_MM_BASE,
+			.size	= MSM_ION_MM_SIZE,
+			.memory_type	= ION_SMI_TYPE,
+			.extra_data	= (void *) &cp_mm_ion_pdata,
+		},
+		{
+			.id	= ION_SF_HEAP_ID,
+			.type	= ION_HEAP_TYPE_CARVEOUT,
+			.name	= ION_SF_HEAP_NAME,
+			.base	= MSM_ION_SF_BASE,
+			.size	= MSM_ION_SF_SIZE,
+			.memory_type	= ION_EBI_TYPE,
+			.extra_data	= (void *)&co_ion_pdata,
+		},
+		{
+			.id	= ION_CP_WB_HEAP_ID,
+			.type	= ION_HEAP_TYPE_CP,
+			.base	= MSM_ION_WB_BASE,
+			.name	= ION_WB_HEAP_NAME,
+			.size	= MSM_ION_WB_SIZE,
+			.memory_type	= ION_EBI_TYPE,
+			.extra_data	= (void *) &cp_wb_ion_pdata,
+		},
+	}
+};
+
+static struct platform_device ion_dev = {
+  .name = "ion-msm",
+  .id = 1,
+  .dev = { .platform_data = &ion_pdata },
+};
+
 static void __init msm8x60_allocate_memory_regions(void)
 {
+    void *addr;
 	unsigned long size;
 
 	size = MSM_FB_SIZE;
-	msm_fb_resources[0].start = MSM_FB_BASE;
+        addr = alloc_bootmem_align(size, 0x1000);
+        msm_fb_resources[0].start = __pa(addr);
 	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
-	pr_info("allocating %lu bytes at 0x%p (0x%lx physical) for fb\n",
-		size, __va(MSM_FB_BASE), (unsigned long) MSM_FB_BASE);
-
-	size = MSM_OVERLAY_BLT_SIZE;
-	msm_fb_resources[1].start = MSM_OVERLAY_BLT_BASE;
+        pr_info("allocating %lu bytes at %p (%lx physical) for fb\n",
+                size, addr, __pa(addr));
+#ifdef CONFIG_FB_MSM_OVERLAY_WRITEBACK
+	size = MSM_FB_WRITEBACK_SIZE;
+	msm_fb_resources[1].start = MSM_FB_WRITEBACK_BASE;
 	msm_fb_resources[1].end = msm_fb_resources[1].start + size - 1;
 	pr_info("allocating %lu bytes at 0x%p (0x%lx physical) for overlay\n",
-		size, __va(MSM_OVERLAY_BLT_BASE), (unsigned long) MSM_OVERLAY_BLT_BASE);
+		size, __va(MSM_FB_WRITEBACK_BASE), (unsigned long) MSM_FB_WRITEBACK_BASE);
+#endif
 }
 
 static int rider_ts_atmel_power(int on)
@@ -2352,7 +2446,6 @@ static int rider_ts_atmel_power(int on)
 	msleep(5);
 	gpio_set_value(PM8058_GPIO_PM_TO_SYS(RIDER_TP_RST), 1);
 	msleep(40);
-
 	return 0;
 }
 
@@ -3780,10 +3873,9 @@ static struct platform_device *rider_devices[] __initdata = {
 	&msm_batt_device,
 #endif
 #ifdef CONFIG_ANDROID_PMEM
-	&android_pmem_device,
 	&android_pmem_adsp_device,
-	&android_pmem_audio_device,
 	&android_pmem_smipool_device,
+	&android_pmem_audio_device,
 #endif
 #ifdef CONFIG_MSM_ROTATOR
 	&msm_rotator_device,
@@ -3855,6 +3947,9 @@ static struct platform_device *rider_devices[] __initdata = {
 #endif
 	&pm8058_leds,
 	&msm8660_device_watchdog,
+#ifdef CONFIG_ION_MSM
+        &ion_dev,
+#endif
 };
 
 static struct memtype_reserve msm8x60_reserve_table[] __initdata = {
@@ -3864,23 +3959,32 @@ static struct memtype_reserve msm8x60_reserve_table[] __initdata = {
 	/* SMI memory pool, as the video core will use offset address */
 	/* from the Firmware base */
 	[MEMTYPE_SMI_KERNEL] = {
-		.start	=	KERNEL_SMI_BASE,
-		.limit	=	KERNEL_SMI_SIZE,
-		.size	=	KERNEL_SMI_SIZE,
-		.flags	=	MEMTYPE_FLAGS_FIXED,
+		.start	= KERNEL_SMI_BASE,
+		.limit	= KERNEL_SMI_SIZE,
+		.size	= KERNEL_SMI_SIZE,
+		.flags	= MEMTYPE_FLAGS_FIXED,
 	},
 	/* User space SMI memory pool for video core */
 	/* used for encoder, decoder input & output buffers  */
 	[MEMTYPE_SMI] = {
-		.start	=	USER_SMI_BASE,
-		.limit	=	USER_SMI_SIZE,
-		.flags	=	MEMTYPE_FLAGS_FIXED,
+		.start	= USER_SMI_BASE,
+		.limit	= USER_SMI_SIZE,
+		.flags	= MEMTYPE_FLAGS_FIXED,
+	},
+	[MEMTYPE_SMI_ION] = {
+		.start	= MSM_SMI_ION_BASE,
+		.limit	= MSM_SMI_ION_SIZE,
+		.flags	= MEMTYPE_FLAGS_FIXED,
 	},
 	[MEMTYPE_EBI0] = {
-		.flags	=	MEMTYPE_FLAGS_1M_ALIGN,
+		.flags	= MEMTYPE_FLAGS_1M_ALIGN,
+	},
+	[MEMTYPE_EBI1] = {
+		.flags	= MEMTYPE_FLAGS_1M_ALIGN,
 	},
 };
 
+#ifdef CONFIG_ANDROID_PMEM
 static void __init size_pmem_device(struct android_pmem_platform_data *pdata, unsigned long start, unsigned long size)
 {
 	pdata->start = start;
@@ -3888,21 +3992,17 @@ static void __init size_pmem_device(struct android_pmem_platform_data *pdata, un
 	pr_info("%s: allocating %lu bytes at 0x%p (0x%lx physical) for %s\n",
 		__func__, size, __va(start), start, pdata->name);
 }
+#endif
 static void __init size_pmem_devices(void)
 {
 #ifdef CONFIG_ANDROID_PMEM
-	if (mem_size_mb == 1024) {
-		size_pmem_device(&android_pmem_adsp_pdata, MSM_PMEM_ADSP_BASE+0x10000000, pmem_adsp_size);
-		size_pmem_device(&android_pmem_pdata, MSM_PMEM_SF_BASE+0x10000000, MSM_PMEM_SF_SIZE);
-	} else {
-		size_pmem_device(&android_pmem_adsp_pdata, MSM_PMEM_ADSP_BASE, pmem_adsp_size);
-		size_pmem_device(&android_pmem_pdata, MSM_PMEM_SF_BASE, MSM_PMEM_SF_SIZE);
-	}
+	size_pmem_device(&android_pmem_adsp_pdata, MSM_PMEM_ADSP_BASE, pmem_adsp_size);
 	size_pmem_device(&android_pmem_smipool_pdata, MSM_PMEM_SMIPOOL_BASE, MSM_PMEM_SMIPOOL_SIZE);
 	size_pmem_device(&android_pmem_audio_pdata, MSM_PMEM_AUDIO_BASE, MSM_PMEM_AUDIO_SIZE);
 #endif
 }
 
+#ifdef CONFIG_ANDROID_PMEM
 static void __init reserve_memory_for(struct android_pmem_platform_data *p)
 {
 	/* If we have set a pre-defined PMEM start base,
@@ -3913,6 +4013,7 @@ static void __init reserve_memory_for(struct android_pmem_platform_data *p)
 		msm8x60_reserve_table[p->memory_type].size += p->size;
 	}
 }
+#endif
 
 static void __init reserve_pmem_memory(void)
 {
@@ -3920,19 +4021,26 @@ static void __init reserve_pmem_memory(void)
 	reserve_memory_for(&android_pmem_adsp_pdata);
 	reserve_memory_for(&android_pmem_smipool_pdata);
 	reserve_memory_for(&android_pmem_audio_pdata);
-	reserve_memory_for(&android_pmem_pdata);
 #endif
 }
+#ifdef CONFIG_ION_MSM
+
+static void __init reserve_ion_memory(void)
+{
+	//Do nothing
+}
+#endif
 
 static void __init msm8x60_calculate_reserve_sizes(void)
 {
 	size_pmem_devices();
 	reserve_pmem_memory();
+	reserve_ion_memory();
 }
 
 static int msm8x60_paddr_to_memtype(unsigned int paddr)
 {
-	if (paddr >= 0x40000000 && paddr < 0x60000000)
+	if (paddr >= 0x40000000 && paddr < 0x80000000)
 		return MEMTYPE_EBI1;
 	if (paddr >= 0x38000000 && paddr < 0x40000000)
 		return MEMTYPE_SMI;
@@ -6729,6 +6837,7 @@ static void __init rider_charm_init_early(void)
 static void __init rider_fixup(struct machine_desc *desc, struct tag *tags,
 		char **cmdline, struct meminfo *mi)
 {
+/*
 	mem_size_mb = parse_tag_memsize((const struct tag *)tags);
 	printk(KERN_DEBUG "%s: mem_size_mb=%u\n", __func__, mem_size_mb);
 
@@ -6738,6 +6847,13 @@ static void __init rider_fixup(struct machine_desc *desc, struct tag *tags,
 	mi->bank[0].size = SIZE_ADDR1;
 	if (mem_size_mb == 1024)
 		mi->bank[0].size += 0x10000000;
+*/
+
+	engineerid = parse_tag_engineerid(tags);
+	mi->nr_banks = 1;
+	mi->bank[0].start = PHY_BASE_ADDR1;
+	mi->bank[0].size = SIZE_ADDR1;
+
 }
 
 MACHINE_START(RIDER, "rider")

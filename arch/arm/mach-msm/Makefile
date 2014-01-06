@@ -368,9 +368,6 @@ obj-$(CONFIG_HTC_BATT8x60) += htc_battery_8x60.o
 obj-$(CONFIG_HTC_BATT_8960) += htc_battery_8960.o htc_battery_cell.o
 obj-$(CONFIG_MACH_PYRAMID) += htc_bdaddress.o board-pyramid-rfkill.o
 obj-$(CONFIG_MACH_PYRAMID) += board-pyramid-mmc.o board-pyramid-wifi.o
-ifeq ($(CONFIG_ION_MSM),y)
-obj-$(CONFIG_MACH_PYRAMID) += board-pyramid-ion.o
-endif
 obj-$(CONFIG_MACH_DOUBLESHOT) += board-doubleshot.o
 obj-$(CONFIG_MACH_DOUBLESHOT) += board-doubleshot-keypad.o
 obj-$(CONFIG_MACH_DOUBLESHOT) += board-doubleshot-audio.o
@@ -413,7 +410,12 @@ obj-$(CONFIG_MACH_RIDER) += board-rider.o
 obj-$(CONFIG_MACH_RIDER) += board-rider-keypad.o
 obj-$(CONFIG_MACH_RIDER) += board-rider-audio.o
 obj-$(CONFIG_MACH_RIDER) += htc_bdaddress.o board-rider-rfkill.o
+
+ifeq ($(CONFIG_WIMAX),y)
 obj-$(CONFIG_MACH_RIDER) += board-rider-mmc.o board-rider-wifi.o board-common-wimax.o
+else
+obj-$(CONFIG_MACH_RIDER) += board-rider-mmc.o board-rider-wifi.o
+endif
 
 obj-$(CONFIG_MACH_VILLEC2) += board-villec2.o
 obj-$(CONFIG_MACH_VILLEC2) += board-villec2-keypad.o

@@ -1,6 +1,10 @@
-/* linux/arch/arm/mach-msm/board-spade.h
+/* linux/arch/arm/mach-msm/board-pyramid.h
  *
  * Copyright (C) 2010-2011 HTC Corporation.
+ *
+ * Copyright (c) 2013 Sultanxda <sultanxda@gmail.com>
+ * Copyright (c) 2013 Sebastian Sobczyk <sebastiansobczyk@wp.pl>
+ * Copyright (c) 2013 bilalliberty <dominos_liberty @ xda-developers>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -16,16 +20,12 @@
 #define __ARCH_ARM_MACH_MSM_BOARD_PYRAMID_H
 
 #include <mach/board.h>
+#include <mach/msm_memtypes.h>
 
 #define PYRAMID_PROJECT_NAME	"pyramid"
 
 #define MSM_RAM_CONSOLE_BASE	MSM_HTC_RAM_CONSOLE_PHYS
 #define MSM_RAM_CONSOLE_SIZE	MSM_HTC_RAM_CONSOLE_SIZE
-
-#define MSM_PMEM_MDP_SIZE       MSM_PMEM_SF_SIZE
-#define MSM_PMEM_MDP_BASE       MSM_PMEM_SF_BASE
-
-/* Memory map */
 
 #if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || \
 		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE) || \
@@ -35,84 +35,45 @@
 #define QCE_0_BASE		0x18500000
 #endif
 
-#ifdef CONFIG_FB_MSM_LCDC_DSUB
-/* VGA = 1440 x 900 x 4(bpp) x 2(pages)
-   prim = 1024 x 600 x 4(bpp) x 2(pages)
-   This is the difference. */
-#define MSM_FB_DSUB_PMEM_ADDER (0x9E3400-0x4B0000)
-#else
-#define MSM_FB_DSUB_PMEM_ADDER (0)
-#endif
+/*** Memory map ***/
+#define MSM_ION_HEAP_NUM      4
 
-#ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-/* prim = 960 x 540 x 4(bpp) x 3(pages) */
-#define MSM_FB_PRIM_BUF_SIZE (960 * ALIGN(540, 32) * 4 * 3)
-#else
-/* prim = 960 x 540 x 4(bpp) x 2(pages) */
-#define MSM_FB_PRIM_BUF_SIZE (960 * ALIGN(540, 32) * 4 * 2)
-#endif
+#define MSM_FB_SIZE roundup((960 * ALIGN(540, 32) * 4 * 3) + 0x3F4800, 4096)
 
-
-#ifdef CONFIG_FB_MSM_OVERLAY_WRITEBACK
-/* width x height x 3 bpp x 2 frame buffer */
-#define MSM_FB_WRITEBACK_SIZE roundup(960 * ALIGN(540, 32) * 3 * 2, 4096)
-#else
-#define MSM_FB_WRITEBACK_SIZE 0
-#endif
-
-#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
-/* prim = 1024 x 600 x 4(bpp) x 2(pages)
- * hdmi = 1920 x 1080 x 2(bpp) x 1(page)
- * Note: must be multiple of 4096 */
-#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + 0x3F4800 + MSM_FB_DSUB_PMEM_ADDER, 4096)
-#elif defined(CONFIG_FB_MSM_TVOUT)
-/* prim = 1024 x 600 x 4(bpp) x 2(pages)
- * tvout = 720 x 576 x 2(bpp) x 2(pages)
- * Note: must be multiple of 4096 */
-#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + 0x195000 + MSM_FB_DSUB_PMEM_ADDER, 4096)
-#else /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
-#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_DSUB_PMEM_ADDER, 4096)
-#endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
-
-#define MSM_PMEM_SF_SIZE        0x4000000 /* 64 Mbytes */
-#define MSM_FB_WRITEBACK_SIZE   roundup(960 * ALIGN(540, 32) * 3 * 2, 4096)
-
-#define MSM_PMEM_ADSP_SIZE	0x239C000
-#define MSM_PMEM_ADSP2_SIZE	0x664000 /* ((1408 * 792 * 1.5) Align 2K) * 2 * 2 */
-#define MSM_PMEM_AUDIO_SIZE	0x239000
-
-#define MSM_PMEM_SF_BASE        (0x70000000 - MSM_PMEM_SF_SIZE)
-#define MSM_FB_WRITEBACK_BASE   (MSM_PMEM_SF_BASE - MSM_FB_WRITEBACK_SIZE)
-#define MSM_PMEM_AUDIO_BASE     (MSM_FB_WRITEBACK_BASE - MSM_PMEM_AUDIO_SIZE)
-
-#define MSM_PMEM_ADSP_BASE	(0x40400000)
-#define MSM_PMEM_ADSP2_BASE	(MSM_PMEM_ADSP_BASE + MSM_PMEM_ADSP_SIZE)
-
-#define MSM_FB_BASE             (0x6B000000)  /*MSM_PMEM_AUDIO_BASE is 0x6BACA000*/
-                                              /*to avoid alignment,  use 0x6BA00000 - 0xA00000*/
-
-#define MSM_PMEM_KERNEL_EBI1_BASE	(MSM_PMEM_AUDIO_BASE + MSM_PMEM_AUDIO_SIZE)
-
-#define MSM_SMI_BASE          0x38000000
+// PMEM SMI
 #define MSM_SMI_SIZE          0x4000000
-
-/* Kernel SMI PMEM Region for video core, used for Firmware */
-/* and encoder,decoder scratch buffers */
-/* Kernel SMI PMEM Region Should always precede the user space */
-/* SMI PMEM Region, as the video core will use offset address */
-/* from the Firmware base */
-#define KERNEL_SMI_BASE       (MSM_SMI_BASE)
-#define KERNEL_SMI_SIZE       0x400000
-
-/* User space SMI PMEM Region for video core*/
-/* used for encoder, decoder input & output buffers  */
-#define USER_SMI_BASE         (KERNEL_SMI_BASE + KERNEL_SMI_SIZE)
+#define KERNEL_SMI_SIZE       0x600000
 #define USER_SMI_SIZE         (MSM_SMI_SIZE - KERNEL_SMI_SIZE)
-#define MSM_PMEM_SMIPOOL_BASE USER_SMI_BASE
 #define MSM_PMEM_SMIPOOL_SIZE USER_SMI_SIZE
 
+// PMEM
+#define MSM_PMEM_AUDIO_SIZE   0x239000
+#define MSM_PMEM_ADSP_SIZE    0x1800000
+
+// ION SMI
+#define MSM_ION_MM_SIZE       0x3000000
+#define MSM_SMI_ION_SIZE      0x3200000
+
+// ION
+#define MSM_ION_WB_SIZE       0x2FD000
+#define MSM_ION_SF_SIZE       0x2900000
+
+// Base addresses
+#define MSM_SMI_BASE          (0x38000000)
+#define KERNEL_SMI_BASE       (MSM_SMI_BASE)
+#define USER_SMI_BASE         (KERNEL_SMI_BASE + KERNEL_SMI_SIZE)
+#define MSM_PMEM_SMIPOOL_BASE USER_SMI_BASE
+#define MSM_ION_SF_BASE       (0x40400000)
+#define MSM_ION_WB_BASE       (0x45C00000)
+#define MSM_PMEM_AUDIO_BASE   (0x46400000)
+#define MSM_ION_MM_BASE       (0x6B600000)
+#define MSM_SMI_ION_BASE      (0x6B600000)
+#define MSM_PMEM_ADSP_BASE    (0x6E800000)
+
+// Userspace allocation
 #define PHY_BASE_ADDR1  0x48000000
-#define SIZE_ADDR1      0x23000000
+#define SIZE_ADDR1      0x23600000
+/*** END Memory map ***/
 
 /* GPIO definition */
 

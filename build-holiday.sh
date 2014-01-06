@@ -32,7 +32,7 @@ sleep 1
      mkdir -p Packages/out/kernel/
      mkdir -p Packages/out/META-INF/
 
-cp -a $(find . -name *.ko -print |grep -v initramfs) Packages/out/system/lib/modules/
+cp -a $(find . -name *.ko -print |grep -v initramfs) Packages/out/system/lib/modules/ > /dev/null
 cp -rf prebuilt-scripts/META-INF/ Packages/out/
 cp -rf prebuilt-scripts/kernel_dir/* Packages/out/kernel/
 cp arch/arm/boot/zImage Packages/out/kernel/

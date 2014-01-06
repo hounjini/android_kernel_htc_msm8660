@@ -1,0 +1,28 @@
+From 0d60e89827d355b3b4c730df40ecca82eeb3a4ab Mon Sep 17 00:00:00 2001
+From: hounjini <hounjini@gmail.com>
+Date: Wed, 14 Aug 2013 19:11:13 +0900
+Subject: [PATCH] S2W enabled.
+
+---
+ drivers/input/touchscreen/atmel.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/input/touchscreen/atmel.c b/drivers/input/touchscreen/atmel.c
+index 3059e39..8d6a8b9 100644
+--- a/drivers/input/touchscreen/atmel.c
++++ b/drivers/input/touchscreen/atmel.c
+@@ -147,8 +147,8 @@ struct atmel_ts_data {
+ #define BACK_BUTTON		645
+ #define SRCH_BUTTON		915
+ 
+-int s2w_switch = 0;
+-int s2w_temp = 0;
++int s2w_switch = 1;
++int s2w_temp = 1;
+ 
+ bool scr_suspended = false, exec_count = true, s2w_switch_changed = false;
+ bool scr_on_touch = false, led_exec_count = false, barrier[2] = {false, false};
+-- 
+1.8.5.1
+
+
