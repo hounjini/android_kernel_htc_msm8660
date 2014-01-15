@@ -63,12 +63,13 @@
 #define MSM_FB_SIZE 0x6F0000
 
 /* PMEM Memory map  */
-#define MSM_PMEM_ADSP_SIZE      0x1200000 /* 18MB */
+#define MSM_PMEM_ADSP_SIZE	0x2F00000	/* ADSP HEAP FROM HTC RIDER KERNEL */		//49283072
+//#define MSM_PMEM_ADSP_SIZE      0x1200000 /* 18MB */						//18874368
 #define MSM_PMEM_AUDIO_SIZE     0x239000 /* 2.22MB  */
 
 #define MSM_PMEM_AUDIO_BASE     0x46400000
-//#define MSM_PMEM_ADSP_BASE      0x7EE00000		//Original one.
-#define MSM_PMEM_ADSP_BASE      0x80600000		//Moved, due to ION_SF_SIZE increased, so to avoiding overlapping.
+//#define MSM_PMEM_ADSP_BASE      0x7EE00000		//Original one.				//2128609280
+#define MSM_PMEM_ADSP_BASE	0x7D100000
 
 /* End PMEM */
 
@@ -84,7 +85,9 @@
 #define MSM_SMI_ION_BASE        0x40400000
 #define MSM_ION_MM_BASE         0x40400000
 #define MSM_ION_WB_BASE         0x45C00000
-#define MSM_ION_SF_BASE         0x7C600000
+//#define MSM_ION_SF_BASE         0x7C600000
+//#define MSM_ION_SF_BASE         0x7AE00000		//					2061500416
+#define MSM_ION_SF_BASE		0x79100000		//2031091712
 
 /* End ION */
 
@@ -106,8 +109,8 @@
 #define MSM_PMEM_SMIPOOL_BASE	USER_SMI_BASE
 #define MSM_PMEM_SMIPOOL_SIZE	USER_SMI_SIZE
 
-#define PHY_BASE_ADDR1		0x48000000
-#define SIZE_ADDR1		0x32E00000
+#define PHY_BASE_ADDR1		0x48000000		//1207959552
+#define SIZE_ADDR1		0x31100000
 //#define SIZE_ADDR1		0x34600000		//original one.
 
 
